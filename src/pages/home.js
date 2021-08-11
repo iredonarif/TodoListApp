@@ -6,33 +6,34 @@ class Home extends React.Component {
         super(props);
 
         this.state = {
+            filterValue: 'all',
+
             newTaskDescription: '',
-            tasks: [
-                {
-                    "id": 1,
-                    "description": "Initialise the project",
-                    "dueDate": "09-08-2021",
-                    "completed": true,
-                    "createdAt": "06-08-2021"
-                },
-                {
-                    "id": 2,
-                    "description": "Develop the Backend",
-                    "completed": false,
-                    "createdAt": "10-08-2021"
-                },
-                {
-                    "id": 3,
-                    "description": "Develop the Frontend",
-                    "dueDate": "27-08-2021",
-                    "completed": false,
-                    "createdAt": "10-08-2021"
-                },
-            ]
+            tasks: JSON.parse(localStorage.getItem("tasks")),
         };
 
+        this.handleFilterChange = this.handleFilterChange.bind(this);
         this.handleChange = this.handleChange.bind(this);
         this.addTask = this.addTask.bind(this);
+    }
+
+    handleFilterChange(e) {
+        this.setState({filterValue: e.target.value});
+    }
+
+    renderTaskList() {
+        switch(this.state.filterValue) {
+            case "all":
+                return <TaskList tasks={this.state.tasks} title={"All Tasks"} />;
+            case "completed":
+                return <TaskList tasks={this.state.tasks.filter(task => task.completed)} title={"Completed Tasks"} />
+            case "incomplete":
+                return <TaskList tasks={this.state.tasks.filter(task => !task.completed)} title={"InCompleted Tasks"} />
+            case "has-due-date":
+                return <TaskList tasks={this.state.tasks.filter(task => task.dueDate)} title={"Tasks with due date"} />
+            default:
+                return <h2>Task not found</h2>
+        }
     }
 
     handleChange(e) {
@@ -42,18 +43,24 @@ class Home extends React.Component {
     addTask(e) {
         e.preventDefault();
 
-        this.setState((prevState) => {
-            const newTask = {
-                id: prevState.tasks.length + 1,
-                description: prevState.newTaskDescription,
-                complete: false
-            };
+        let tasks = localStorage.getItem("tasks");
+        let newTaskId = 1;
+        if (tasks !== null) {
+            tasks = JSON.parse(tasks)
+            newTaskId = tasks.length + 1;
+        }
+        else tasks = [];
 
-            return {
-                newTaskDescription: '',
-                tasks: prevState.tasks.concat(newTask)
-            }
-        })
+        const newTask = {
+            id: newTaskId,
+            description: this.state.newTaskDescription,
+            completed: false,
+            createdAt: new Date().toLocaleDateString()
+        }
+        let newTasks = tasks.concat(newTask);
+        localStorage.setItem("tasks", JSON.stringify(newTasks));
+
+        this.setState({newTaskDescription: '', tasks: newTasks});
     }
 
     render() {
@@ -103,13 +110,14 @@ class Home extends React.Component {
                      <div className="row m-1 p-3 px-5 justify-content-end">
                          <div className="col-auto d-flex align-items-center">
                              <label className="text-secondary my-2 pr-2 view-opt-label">Filter</label>
-                             <select className="custom-select custom-select-sm btn my-2">
-                                 <option defaultValue="all">All</option>
-                                 <option defaultValue="completed">Completed</option>
-                                 <option defaultValue="active">Active</option>
-                                 <option defaultValue="has-due-date">Has due date</option>
+                             <select className="custom-select custom-select-sm btn my-2" value={this.state.filterValue} onChange={this.handleFilterChange}>
+                                 <option value="all">All</option>
+                                 <option value="completed">Completed</option>
+                                 <option value="incomplete">Incomplete</option>
+                                 <option value="has-due-date">Has due date</option>
                              </select>
                          </div>
+
                          <div className="col-auto d-flex align-items-center px-1 pr-3">
                              <label className="text-secondary my-2 pr-2 view-opt-label">Sort</label>
                              <select className="custom-select custom-select-sm btn my-2">
@@ -124,7 +132,7 @@ class Home extends React.Component {
                          </div>
                      </div>
 
-                     <TaskList tasks={this.state.tasks} />
+                     { this.renderTaskList() }
                  </div>
             </div>
          );
@@ -134,10 +142,21 @@ class Home extends React.Component {
 class TaskList extends React.Component {
     render() {
         return (
-            <div className="row mx-1 px-5 pb-3 w-80">
-                <div className="col mx-auto">
-                    {this.props.tasks.map( task => <Task key={task.id} task={task} />)}
-                </div>
+            <div>
+                <h2 className="text-center mt-5">{ this.props.title }</h2>
+                {
+                (this.props.tasks && this.props.tasks.length) ?
+                    (
+                        <div className="row mx-1 px-5 pb-3 w-80">
+                            <div className="col mx-auto">
+                                {this.props.tasks.map( task => <Task key={task.id} task={task} { ...this} />)}
+                            </div>
+                        </div>
+                    ) :
+                    <div className="alert alert-warning">
+                        <p className="text-center"> <i className="fa fa-warning fa-lg"/> No Tasks</p>
+                    </div>
+                }
             </div>
         );
     }
@@ -157,8 +176,11 @@ class Task extends React.Component {
 
     handleCheck(e) {
         const task = this.props.task;
-        task.completed= !task.completed;
-        this.setState({theTask: task})
+        task.completed = !task.completed;
+        this.setState({theTask: task});
+
+        // Update tasks in local storage
+        localStorage.setItem("tasks", JSON.stringify(this.props.props.tasks));
     }
 
     render() {
