@@ -1,4 +1,5 @@
 import React from "react";
+import Swal from "sweetalert2";
 
 class Home extends React.Component {
 
@@ -15,6 +16,7 @@ class Home extends React.Component {
         this.handleFilterChange = this.handleFilterChange.bind(this);
         this.handleChange = this.handleChange.bind(this);
         this.addTask = this.addTask.bind(this);
+        this.deleteTask = this.deleteTask.bind(this);
     }
 
     handleFilterChange(e) {
@@ -24,13 +26,20 @@ class Home extends React.Component {
     renderTaskList() {
         switch(this.state.filterValue) {
             case "all":
-                return <TaskList tasks={this.state.tasks} title={"All Tasks"} />;
+                return <TaskList tasks={this.state.tasks} title={"All Tasks"} deleteTask={this.deleteTask} />;
+
             case "completed":
-                return <TaskList tasks={this.state.tasks.filter(task => task.completed)} title={"Completed Tasks"} />
+                return <TaskList tasks={this.state.tasks.filter(task => task.completed)}
+                     title={"Completed Tasks"} deleteTask={this.deleteTask} />
+
             case "incomplete":
-                return <TaskList tasks={this.state.tasks.filter(task => !task.completed)} title={"InCompleted Tasks"} />
+                return <TaskList tasks={this.state.tasks.filter(task => !task.completed)}
+                     title={"InCompleted Tasks"} deleteTask={this.deleteTask} />
+
             case "has-due-date":
-                return <TaskList tasks={this.state.tasks.filter(task => task.dueDate)} title={"Tasks with due date"} />
+                return <TaskList tasks={this.state.tasks.filter(task => task.dueDate)}
+                     title={"Tasks with due date"} deleteTask={this.deleteTask} />
+
             default:
                 return <h2>Task not found</h2>
         }
@@ -38,6 +47,10 @@ class Home extends React.Component {
 
     handleChange(e) {
         this.setState({newTaskDescription: e.target.value});
+    }
+
+    deleteTask(theTask) {
+        this.setState( {tasks: this.state.tasks.filter(task => task.id !== theTask.id )} )
     }
 
     addTask(e) {
@@ -172,6 +185,35 @@ class Task extends React.Component {
         };
 
         this.handleCheck = this.handleCheck.bind(this);
+        this.deleteConfirmation = this.deleteConfirmation.bind(this);
+    }
+
+    deleteConfirmation() {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.deleteTask();
+                Swal.fire(
+                    'Deleted!',
+                    'Your task has been deleted.',
+                    'success'
+                )
+            }
+        })
+    }
+
+    deleteTask() {
+        this.props.props.deleteTask(this.props.task);
+
+        let newTasks = JSON.parse(localStorage.getItem("tasks")).filter(task => task.id !== this.props.task.id);
+        localStorage.setItem("tasks", JSON.stringify(newTasks));
     }
 
     handleCheck(e) {
@@ -234,7 +276,7 @@ class Task extends React.Component {
                         </h5>
                         <h5 className="m-0 p-0 px-2">
                             <i className="fa fa-trash-o text-danger btn m-0 p-0" data-toggle="tooltip"
-                               data-placement="bottom" title="Delete todo"/>
+                               data-placement="bottom" title="Delete todo" onClick={this.deleteConfirmation} />
                         </h5>
                     </div>
                     <div className="row todo-created-info">
