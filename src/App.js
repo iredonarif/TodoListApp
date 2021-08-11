@@ -1,5 +1,4 @@
 import Home from './pages/home';
-//import logo from './logo.svg';
 import './App.css';
 
 function App() {
